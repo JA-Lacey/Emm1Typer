@@ -2,6 +2,35 @@
 
 A comprehensive tool for emm1 lineage typing, MLST analysis, and emmtyping of Streptococcus pyogenes isolates.
 
+## 🆕 Modular Design
+
+This tool has been refactored into a **modular architecture** for easier maintenance and modification. You can now use either:
+
+- **`Emm1typer_modular.py`** - New modular version (recommended)
+- **`Emm1typer.py`** - Original monolithic version
+
+### Modular Architecture Benefits
+
+- **Easier maintenance**: Each function is in its own focused module
+- **Simple modifications**: Change specific functionality without affecting other components
+- **Better testing**: Test individual modules independently
+- **Cleaner code**: Separation of concerns and single responsibility principle
+- **Extensible**: Easy to add new analysis types or modify existing ones
+
+### Module Structure
+
+```
+modules/
+├── __init__.py                 # Package initialization
+├── config_manager.py           # Configuration and reference file management
+├── dependency_checker.py       # External tool validation
+├── lineage_typer.py            # emm1 lineage typing using mykrobe
+├── mlst_analyzer.py            # MLST analysis using mlst
+├── emm_typer.py                # emm typing using emmtyper
+├── results_analyzer.py         # Results filtering and validation
+└── report_generator.py         # Summary report generation
+```
+
 ## Features
 
 - **emm1 lineage typing** from paired-end reads using mykrobe
@@ -11,6 +40,7 @@ A comprehensive tool for emm1 lineage typing, MLST analysis, and emmtyping of St
 - **Configurable acceptable types** via YAML files for easy modification
 - **Automated warnings** for samples with non-acceptable emm types and MLST profiles
 - Comprehensive summary reporting
+- **🆕 Modular design** for easy customization and maintenance
 
 ## Requirements
 
@@ -56,7 +86,20 @@ mlst_profiles:
 
 ## Usage
 
-### Basic Usage
+### Modular Version (Recommended)
+
+```bash
+# Process reads only (emm1 lineage typing)
+python Emm1typer_modular.py --reads reads.tab --reference-dir ./reference_data
+
+# Process contigs only (MLST + emmtyping)
+python Emm1typer_modular.py --contigs contigs.tab --reference-dir ./reference_data
+
+# Process both reads and contigs (complete analysis)
+python Emm1typer_modular.py --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+```
+
+### Original Version
 
 ```bash
 # Process reads only (emm1 lineage typing)
@@ -72,7 +115,7 @@ python Emm1typer.py --reads reads.tab --contigs contigs.tab --reference-dir ./re
 ### Advanced Options
 
 ```bash
-python Emm1typer.py \
+python Emm1typer_modular.py \
   --reads reads.tab \
   --contigs contigs.tab \
   --reference-dir ./reference_data \
@@ -80,6 +123,54 @@ python Emm1typer.py \
   --threads 16 \
   --parallel-jobs 20
 ```
+
+## Modifying the Workflow
+
+### Adding New Analysis Types
+
+To add a new analysis type to the modular version:
+
+1. **Create a new module** in `modules/` (e.g., `new_analyzer.py`):
+   ```python
+   class NewAnalyzer:
+       def __init__(self, output_dir, threads=8):
+           self.output_dir = Path(output_dir)
+           self.threads = threads
+       
+       def process_data(self, input_file):
+           # Your analysis logic here
+           return True
+   ```
+
+2. **Import and initialize** in `Emm1typer_modular.py`:
+   ```python
+   from modules.new_analyzer import NewAnalyzer
+   
+   # In __init__:
+   self.new_analyzer = NewAnalyzer(output_dir, threads)
+   ```
+
+3. **Add to the workflow** in the orchestrator class:
+   ```python
+   def run_new_analysis(self, input_file):
+       return self.new_analyzer.process_data(input_file)
+   ```
+
+### Modifying Existing Analysis
+
+To modify an existing analysis (e.g., MLST):
+
+1. **Edit the specific module**: `modules/mlst_analyzer.py`
+2. **Modify only the relevant methods** without affecting other components
+3. **The changes automatically apply** to the main workflow
+
+### Customizing Results Analysis
+
+To change how results are filtered or analyzed:
+
+1. **Edit** `modules/results_analyzer.py`
+2. **Modify** the `analyze_mlst_results()` or `analyze_emmtyper_results()` methods
+3. **Add new filtering criteria** or change existing logic
 
 ## Input File Formats
 
@@ -160,9 +251,9 @@ The script generates several output files:
 
 2. **Prepare your input files** following the format specifications
 
-3. **Run the analysis**:
+3. **Run the analysis** (modular version recommended):
    ```bash
-   python Emm1typer.py --reads my_reads.tab --contigs my_contigs.tab --reference-dir ./reference_data
+   python Emm1typer_modular.py --reads my_reads.tab --contigs my_contigs.tab --reference-dir ./reference_data
    ```
 
 4. **Review the output** for warnings about non-acceptable samples
@@ -174,6 +265,7 @@ The script generates several output files:
 
 ## Notes
 
+- **🆕 Modular design**: Use `Emm1typer_modular.py` for easier customization and maintenance
 - **Configurable acceptance criteria**: Simply edit the YAML files to change which emm types and MLST profiles are considered acceptable
 - **Clear warnings**: The script provides immediate feedback about samples that don't meet your criteria
 - **Automatic filtering**: Results are automatically separated into complete and filtered (acceptable-only) datasets
@@ -189,14 +281,3 @@ If you encounter issues:
 2. Verify that reference files are present and correctly formatted
 3. Check that input file paths are correct and accessible
 4. Make sure PyYAML is installed: `pip install PyYAML`
-5. Use `--skip-deps-check` if you have tools installed in non-standard locations
-
-## Customizing Acceptable Types
-
-To modify which types are considered acceptable for your analysis:
-
-1. **Edit emm types**: Modify `reference_data/acceptable_emm_types.yaml`
-2. **Edit MLST profiles**: Modify `reference_data/acceptable_mlst_profiles.yaml`  
-3. **Re-run analysis**: The script will automatically use your updated criteria
-
-The YAML format makes it easy to add, remove, or modify acceptable types without editing the main script.
