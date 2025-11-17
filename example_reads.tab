@@ -1,0 +1,5 @@
+# Example reads input file (reads.tab)
+# Format: Strain_ID<tab>reads1_path<tab>reads2_path
+Sample001	/path/to/sample001_R1.fastq.gz	/path/to/sample001_R2.fastq.gz
+Sample002	/path/to/sample002_R1.fastq.gz	/path/to/sample002_R2.fastq.gz
+Sample003	/path/to/sample003_R1.fastq.gz	/path/to/sample003_R2.fastq.gz

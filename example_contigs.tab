@@ -1,0 +1,5 @@
+# Example contigs input file (contigs.tab)
+# Format: Strain_ID<tab>contigs_path
+Sample001	/path/to/sample001_contigs.fa
+Sample002	/path/to/sample002_contigs.fa
+Sample003	/path/to/sample003_contigs.fa
