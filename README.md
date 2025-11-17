@@ -1,5 +1,5 @@
 # Emm1Typer
-emm1 lineage typing from reads implemented in Mykrobe
+Mykrobe implementation and post processing for genotyping of emm1 Streptococcus pyogenes genomes
 
 
 A genotyping scheme of emm1-ST28 (or locus variants thereof) of Streptococcus pyognes isolates. 
