@@ -1,0 +1,90 @@
+164322	T	A	lineage_A	SF370_lineage_Pre-1980
+146988	G	A	lineage_A	SF370_lineage
+147213	G	A	lineage_A	SF370_lineage
+1048888	A	A	lineage_A	SF370_lineage
+127674	A	A.1	lineage_A.1	SF370_lineage
+1311231	G	A.1	lineage_A.1	SF370_lineage
+464029	G	A.1.1	lineage_A.1.1	SF370_lineage
+1371612	C	A.1.1	lineage_A.1.1	SF370_lineage
+295530	C	A.1.2	lineage_A.1.2	SF370_lineage
+1795421	G	A.1.2	lineage_A.1.2	SF370_lineage
+164322	G	B	lineage_B	
+48785	G	B.2	lineage_B.2	
+284287	T	B.2	lineage_B.2	
+1607148	C	B.2	lineage_B.2	
+1249569	G	B.2.1	lineage_B.2.1	
+1459439	G	B.2.2	lineage_B.2.2	
+167489	C	B.3	lineage_B.3	
+603488	G	B.3	lineage_B.3	
+779899	T	B.3	lineage_B.3	
+530171	A	B.3.1	lineage_B.3.1	
+906411	G	B.3.1.2	lineage_B.3.1.2	
+1754171	T	B.3.1.3	lineage_B.3.1.3	
+149773	C	B.3.1.4	lineage_B.3.1.4	
+511352	C	B.3.1.3.1	lineage_B.3.1.3.1	
+288831	A	B.3.1.3.1.1	lineage_B.3.1.3.1.1	
+329574	C	B.3.1.3.1.2	lineage_B.3.1.3.1.2	
+535998	G	B.3.1.3.1.1.1	lineage_B.3.1.3.1.1.1	
+950802	C	B.3.2	lineage_B.3.2	
+1036960	A	B.3.2.1	lineage_B.3.2.1	
+1456645	A	B.3.2.1	lineage_B.3.2.1	
+822972	C	B.3.2.1.1	lineage_B.3.2.1.1	
+1255805	G	B.3.2.1.1	lineage_B.3.2.1.1	
+954877	T	B.3.2.1.2	lineage_B.3.2.1.2	
+175534	G	B.3.2.1.2.1	lineage_B.3.2.1.2.1	
+466135	G	B.3.2.1.2.1	lineage_B.3.2.1.2.1	
+1480730	T	B.3.2.1.2.1	lineage_B.3.2.1.2.1	
+50024	A	B.3.2.1.2.2	lineage_B.3.2.1.2.2	
+1597233	G	B.3.2.1.2.3	lineage_B.3.2.1.2.3	
+580174	C	B.3.2.1.2.2.1	lineage_B.3.2.1.2.2.1	M1DK progenitor
+531214	C	B.3.2.1.2.2.1.1	lineage_B.3.2.1.2.2.1.1	M1DK 
+1045871	G	B.3.2.1.2.2.1.1	lineage_B.3.2.1.2.2.1.1	M1DK 
+1272188	T	B.3.2.1.2.2.1.1	lineage_B.3.2.1.2.2.1.1	M1DK 
+847005	A	B.3.2.1.2.1.1	lineage_B.3.2.1.2.1.1	
+537603	C	B.3.3	lineage_B.3.3	
+1251911	A	B.3.3	lineage_B.3.3	
+227151	C	B.3.3.1	lineage_B.3.3.1	M1AUS progenitor
+548664	G	B.3.3.1	lineage_B.3.3.1	M1AUS progenitor
+577230	C	B.3.3.1	lineage_B.3.3.1	M1AUS progenitor
+1778188	G	B.3.3.1	lineage_B.3.3.1	M1AUS progenitor
+31771	A	B.3.3.1.1	lineage_B.3.3.1.1	M1AUS
+162827	C	B.3.3.1.1	lineage_B.3.3.1.1	M1AUS
+245908	G	B.3.3.1.1	lineage_B.3.3.1.1	M1AUS
+1792446	T	B.3.3.1.1	lineage_B.3.3.1.1	M1AUS
+115646	C	B.3.4	lineage_B.3.4	M1UK progenitor 
+116162	A	B.3.4.1	lineage_B.3.4.1	M1UK progenitor (M1-13)
+116163	C	B.3.4.1	lineage_B.3.4.1	M1UK progenitor (M1-13)
+513254	G	B.3.4.1	lineage_B.3.4.1	M1UK progenitor (M1-13)
+1082253	C	B.3.4.1	lineage_B.3.4.1	M1UK progenitor (M1-13)
+1238124	G	B.3.4.1	lineage_B.3.4.1	M1UK progenitor (M1-13)
+1238673	G	B.3.4.1	lineage_B.3.4.1	M1UK progenitor (M1-13)
+528360	A	B.3.4.1.1	lineage_B.3.4.1.1	M1UK progenitor (M1-19)
+661707	G	B.3.4.1.1	lineage_B.3.4.1.1	M1UK progenitor (M1-19)
+1702540	C	B.3.4.1.1	lineage_B.3.4.1.1	M1UK progenitor (M1-19)
+522609	C	B.3.4.1.2	lineage_B.3.4.1.2	M1-13 decendent but not M1-19
+576801	G	B.3.4.1.2	lineage_B.3.4.1.2	M1-13 decendent but not M1-19
+1058409	C	B.3.4.1.2	lineage_B.3.4.1.2	M1-13 decendent but not M1-19
+1752093	A	B.3.4.1.2	lineage_B.3.4.1.2	M1-13 decendent but not M1-19
+250832	T	B.3.4.1.1.1	lineage_B.3.4.1.1.1	M1UK progenitor (M1-23)
+1251193	G	B.3.4.1.1.1.1	lineage_B.3.4.1.1.1.1	M1UK
+1373176	C	B.3.4.1.1.1.1	lineage_B.3.4.1.1.1.1	M1UK
+78299	T	B.3.4.1.1.1.1.1	lineage_B.3.4.1.1.1.1.1	M1UK-decendent
+787690	A	B.3.4.1.1.1.1.2	lineage_B.3.4.1.1.1.1.2	M1UK-decendent
+126007	C	B.3.4.1.1.1.1.3	lineage_B.3.4.1.1.1.1.3	M1UK-decendent
+253420	A	B.3.4.1.1.1.1.3	lineage_B.3.4.1.1.1.1.3	M1UK-decendent
+1191744	G	B.3.4.1.1.1.1.1.1	lineage_B.3.4.1.1.1.1.1.1	M1UK-decendent
+1263635	C	B.3.4.1.1.1.1.1.1	lineage_B.3.4.1.1.1.1.1.1	M1UK-decendent
+465836	G	B.3.4.1.1.1.1.1.2	lineage_B.3.4.1.1.1.1.1.2	M1UK-decendent
+1265144	C	B.3.4.1.1.1.1.1.3	lineage_B.3.4.1.1.1.1.1.3	M1UK-decendent
+712345	C	B.3.4.1.1.1.1.1.4	lineage_B.3.4.1.1.1.1.1.4	M1UK-decendent
+711809	A	B.3.4.1.1.1.1.1.5	lineage_B.3.4.1.1.1.1.1.5	M1UK-decendent
+47867	C	B.3.4.1.1.1.1.1.5	lineage_B.3.4.1.1.1.1.1.5	M1UK-decendent
+1732547	G	B.3.4.1.1.1.1.1.6	lineage_B.3.4.1.1.1.1.1.6	M1UK-decendent
+1265144	C	B.3.4.1.1.1.1.1.7	lineage_B.3.4.1.1.1.1.1.7	M1UK-decendent
+759566	T	B.4	lineage_B.4	lineage4
+1700724	T	B.4	lineage_B.4	lineage4
+99999	G	B.5	lineage_B.5	lineage5
+1622490	A	B.5	lineage_B.5	lineage5
+420769	C	B.6	lineage_B.6	lineage6
+908370	T	B.6	lineage_B.6	lineage6
+352989	C	B.1	lineage_B.1	lineage1
