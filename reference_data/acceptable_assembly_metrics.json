@@ -1,0 +1,5 @@
+{
+  "min_genome_size": 1800000,
+  "max_genome_size": 2200000,
+  "max_contigs": 200,
+}

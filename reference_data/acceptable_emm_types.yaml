@@ -1,4 +1,5 @@
 # Acceptable emm types for S. pyogenes emm1 analysis
+# Includes all EMM1.* variants and allows for ~ partial matches
 emm_types:
   - "emm1.0"
   - "emm1.1"
@@ -20,3 +21,11 @@ emm_types:
   - "emm1.17"
   - "emm1.18"
   - "emm1.19"
+  - "emm1.34"
+  - "emm1.34~"
+  - "emm1.90"
+  - "emm1.92"
+  - "emm1.96"
+  - "emm1.98"
+  - "emm1.99"
+  # Pattern matching enabled in QC processor for EMM1.* and EMM1.*~ variants

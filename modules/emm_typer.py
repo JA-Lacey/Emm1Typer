@@ -53,8 +53,9 @@ class EmmTyper:
         temp_dir.mkdir(exist_ok=True)
         
         try:
-            # Copy and rename contigs files
-            contig_files = self._prepare_contig_files(contigs_df, temp_dir)
+            # Copy and rename contigs files using shared utility
+            from .config_manager import ConfigManager
+            contig_files = ConfigManager.prepare_contig_files(contigs_df, temp_dir)
             
             if not contig_files:
                 print("No valid contig files found for emmtyping")
@@ -66,25 +67,6 @@ class EmmTyper:
         finally:
             # Clean up temporary files
             shutil.rmtree(temp_dir, ignore_errors=True)
-    
-    def _prepare_contig_files(self, contigs_df, temp_dir):
-        """Copy and rename contigs files for emmtyper analysis"""
-        contig_files = []
-        
-        for _, row in contigs_df.iterrows():
-            strain_id = row['Strain_ID']
-            contig_path = Path(row['contigs_path'])
-            
-            if not contig_path.exists():
-                print(f"Warning: Contigs file {contig_path} not found for strain {strain_id}")
-                continue
-            
-            # Copy to temp directory with strain ID as filename
-            dest_file = temp_dir / f"{strain_id}.fa"
-            shutil.copy2(contig_path, dest_file)
-            contig_files.append(dest_file)
-        
-        return contig_files
     
     def _run_emmtyper(self, contigs_dir):
         """Run emmtyper analysis on contigs"""
