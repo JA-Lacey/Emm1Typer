@@ -13,7 +13,6 @@ import argparse
 import subprocess
 from pathlib import Path
 import json
-import yaml
 import pandas as pd
 from scripts.qc_processor import QCProcessor
 from concurrent.futures import ThreadPoolExecutor, as_completed
