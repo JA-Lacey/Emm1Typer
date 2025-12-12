@@ -1,5 +1,7 @@
 {
-  "min_genome_size": 1800000,
+  "min_genome_size": 1700000,
   "max_genome_size": 2200000,
   "max_contigs": 200,
+  "min_n50": 50000,
+  "max_n_content": 5.0
 }

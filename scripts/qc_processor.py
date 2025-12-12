@@ -146,8 +146,9 @@ class QCProcessor:
             # Run seqkit stats
             assembly_stats = self._run_seqkit_stats(strain_contigs)
             
-            # Determine lineage (simplified - you may want to use your existing lineage logic)
-            result['Lineage'] = self._determine_lineage(emm_result, mlst_result)
+            # Run mykrobe predict to get lineage from final genotype
+            mykrobe_lineage = self._run_mykrobe_predict(strain_id, strain_contigs, temp_dir)
+            result['Lineage'] = mykrobe_lineage
             
             # Perform QC checks
             qc_status, comments = self._perform_qc_checks(emm_result, mlst_result, assembly_stats)
@@ -168,13 +169,15 @@ class QCProcessor:
             cmd = ["emmtyper", "--output-format", "verbose", str(contigs_file)]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             
-            # Parse emmtyper output (simplified - adjust based on actual output format)
+            # Parse emmtyper output - extract EMM type and cluster info
             lines = result.stdout.strip().split('\n')
             for line in lines:
                 if line and not line.startswith('#'):
                     parts = line.split('\t')
-                    if len(parts) > 1:
-                        return parts[1]  # Assuming EMM type is in second column
+                    if len(parts) > 5:
+                        emm_type = parts[3]  # EMM type (e.g., EMM1.0)
+                        cluster = parts[5]   # Cluster (e.g., A-C3)
+                        return f"{emm_type} {cluster}"
             
             return "Unknown"
             
@@ -237,6 +240,133 @@ class QCProcessor:
             print(f"seqkit stats failed: {e}")
             return {}
     
+    def _run_mykrobe_predict(self, strain_id, contigs_file, temp_dir):
+        """Extract lineage from existing mykrobe results or run mykrobe predict if needed"""
+        try:
+            # First, check if mykrobe results already exist from standard mode
+            existing_results = self._check_existing_mykrobe_results(strain_id)
+            if existing_results:
+                return existing_results
+            
+            # If no existing results, run mykrobe predict
+            return self._run_fresh_mykrobe_predict(strain_id, contigs_file, temp_dir)
+            
+        except Exception as e:
+            print(f"Error getting mykrobe results for {strain_id}: {e}")
+            return "Unknown"
+    
+    def _check_existing_mykrobe_results(self, strain_id):
+        """Check if mykrobe results already exist from standard mode and extract lineage"""
+        try:
+            # Check for existing mykrobe results file from standard mode
+            results_file = self.output_dir / "mykrobe_predictResults.tsv"
+            
+            if results_file.exists():
+                # Read existing results
+                df = pd.read_csv(results_file, sep='\t')
+                
+                # Find the row for this strain
+                strain_row = df[df['genome'] == strain_id]
+                
+                if len(strain_row) > 0:
+                    final_genotype = strain_row['final genotype'].iloc[0]
+                    print(f"Found existing mykrobe result for {strain_id}: {final_genotype}")
+                    return final_genotype
+            
+            # Check for individual JSON files in temp directory (if they weren't cleaned up)
+            temp_json = self.output_dir / "temp_mykrobe" / f"{strain_id}_mykrobe.json"
+            if temp_json.exists():
+                return self._extract_lineage_from_json(temp_json, strain_id)
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error checking existing mykrobe results for {strain_id}: {e}")
+            return None
+    
+    def _extract_lineage_from_json(self, json_file, strain_id):
+        """Extract final genotype from mykrobe JSON file"""
+        try:
+            with open(json_file, 'r') as f:
+                myk_result = json.load(f)
+            
+            # Extract genome name and phylogenetics data
+            genome_name = list(myk_result.keys())[0]
+            genome_data = myk_result[genome_name]
+            
+            if "phylogenetics" in genome_data:
+                phylo_data = genome_data["phylogenetics"]
+                
+                # Check if lineage data exists
+                if "lineage" in phylo_data and phylo_data["lineage"]:
+                    # Import the existing parser to extract lineage info
+                    import sys
+                    sys.path.append(str(self.reference_dir.parent / "scripts"))
+                    from parse_mykrobe_predict_emm1 import extract_lineage_info
+                    
+                    # Load alleles mapping
+                    lineage_name_dict = {}
+                    alleles_file = self.reference_dir / "emm1_alleles.txt"
+                    if alleles_file.exists():
+                        with open(alleles_file, 'r') as f:
+                            for line in f:
+                                fields = line.strip().split('\t')
+                                if len(fields) >= 4:
+                                    lineage_name_dict[fields[2]] = fields[3]
+                    
+                    # Extract lineage info using existing parser
+                    lineage_table = extract_lineage_info(phylo_data, genome_name, lineage_name_dict)
+                    
+                    # Get final genotype from the parsed result
+                    if len(lineage_table) > 0 and 'final genotype' in lineage_table.columns:
+                        final_genotype = lineage_table['final genotype'].iloc[0]
+                        return final_genotype
+            
+            return "Unknown"
+            
+        except Exception as e:
+            print(f"Error extracting lineage from JSON for {strain_id}: {e}")
+            return "Unknown"
+    
+    def _run_fresh_mykrobe_predict(self, strain_id, contigs_file, temp_dir):
+        """Run fresh mykrobe predict analysis if no existing results found"""
+        try:
+            print(f"No existing mykrobe results found for {strain_id}, running fresh analysis...")
+            
+            # Prepare reference files
+            probes_file = self.reference_dir / "probes.fa"
+            lineage_file = self.reference_dir / "lineage.json"
+            
+            # Check if reference files exist
+            if not probes_file.exists() or not lineage_file.exists():
+                print(f"Warning: Missing reference files for mykrobe predict")
+                return "Unknown"
+            
+            output_file = temp_dir / f"{strain_id}_mykrobe.json"
+            
+            cmd = [
+                "mykrobe", "predict",
+                "--sample", strain_id,
+                "--species", "custom",
+                "--seq", str(contigs_file),
+                "--custom_lineage_json", str(lineage_file),
+                "--custom_probe_set_path", str(probes_file),
+                "--format", "json",
+                "-o", str(output_file)
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            
+            # Parse the fresh mykrobe JSON output
+            if output_file.exists():
+                return self._extract_lineage_from_json(output_file, strain_id)
+            
+            return "Unknown"
+            
+        except subprocess.CalledProcessError as e:
+            print(f"mykrobe predict failed for {strain_id}: {e}")
+            return "Failed"
+    
     def _determine_lineage(self, emm_type, st_type):
         """Determine lineage based on EMM and ST (simplified)"""
         if emm_type.startswith('emm1') and st_type in ['ST28', 'ST15']:
@@ -251,13 +381,16 @@ class QCProcessor:
         comments = []
         qc_status = "PASS"
         
+        # Extract EMM type from full emmtyper output for validation
+        emm_type_for_check = self._extract_emm_type_from_result(emm_result)
+        
         # Check EMM type with pattern matching for EMM1.* variants
-        emm_acceptable = self._is_acceptable_emm_type(emm_result)
+        emm_acceptable = self._is_acceptable_emm_type(emm_type_for_check)
         if not emm_acceptable:
-            if emm_result in ['Unknown', 'Failed']:
+            if emm_type_for_check in ['Unknown', 'Failed']:
                 comments.append("EMM typing failed")
             else:
-                comments.append(f"EMM type {emm_result} not acceptable (must be EMM1.* variant)")
+                comments.append(f"EMM type {emm_type_for_check} not acceptable (must be EMM1.* variant)")
             qc_status = "FAIL"
         
         # Check MLST
@@ -295,6 +428,20 @@ class QCProcessor:
             comments.append("All QC checks passed")
         
         return qc_status, comments
+    
+    def _extract_emm_type_from_result(self, emm_result):
+        """Extract just the EMM type from the emmtyper result for validation"""
+        if emm_result in ['Unknown', 'Failed']:
+            return emm_result
+        
+        # If it's the formatted "EMM1.0 A-C3" format, extract just the EMM type
+        try:
+            parts = emm_result.split()
+            if len(parts) >= 1:
+                return parts[0]  # EMM type is the first part (e.g., "EMM1.0")
+            return emm_result
+        except:
+            return emm_result
     
     def _is_acceptable_emm_type(self, emm_type):
         """
