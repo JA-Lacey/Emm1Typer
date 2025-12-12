@@ -1,180 +1,124 @@
 # Emm1typer
 
-A comprehensive tool for emm1 lineage typing, MLST analysis, and emmtyping of Streptococcus pyogenes isolates.
+A simplified tool for emm1 lineage typing and quality control of Streptococcus pyogenes isolates.
 
-## 🆕 Modular Design
+## Overview
 
-This tool has been refactored into a **modular architecture** for easier maintenance and modification. You can now use either:
+Emm1typer provides two main modes of operation:
 
-- **`Emm1typer_modular.py`** - New modular version (recommended)
-- **`Emm1typer.py`** - Original monolithic version
-
-### Modular Architecture Benefits
-
-- **Easier maintenance**: Each function is in its own focused module
-- **Simple modifications**: Change specific functionality without affecting other components
-- **Better testing**: Test individual modules independently
-- **Cleaner code**: Separation of concerns and single responsibility principle
-- **Extensible**: Easy to add new analysis types or modify existing ones
-
-### Module Structure
-
-```
-modules/
-├── __init__.py                 # Package initialization
-├── config_manager.py           # Configuration and reference file management
-├── dependency_checker.py       # External tool validation
-├── lineage_typer.py            # emm1 lineage typing using mykrobe
-├── mlst_analyzer.py            # MLST analysis using mlst
-├── emm_typer.py                # emm typing using emmtyper
-├── results_analyzer.py         # Results filtering and validation
-└── report_generator.py         # Summary report generation
-```
+1. **Standard Mode**: Run mykrobe analysis for emm1 lineage typing from reads
+2. **QC Mode**: Quality control assessment of assembled contigs including emmtyper, MLST, and assembly statistics
 
 ## Features
 
-- **emm1 lineage typing** from paired-end reads using mykrobe
-- **MLST typing** from assembled contigs using mlst
-- **emmtyping** from assembled contigs using emmtyper
-- Parallel processing support for high-throughput analysis
-- **Configurable acceptable types** via YAML files for easy modification
-- **Automated warnings** for samples with non-acceptable emm types and MLST profiles
-- Comprehensive summary reporting
-- **🆕 Modular design** for easy customization and maintenance
+- **Standard Mode**: emm1 lineage typing from paired-end reads using mykrobe
+- **QC Mode**: Comprehensive quality control including:
+  - emmtyping using emmtyper
+  - MLST analysis using mlst (spyogenes scheme)
+  - Assembly quality assessment using seqkit stats
+  - Validation against configurable acceptable values
+- **Flexible EMM validation**: Accepts any EMM1.* variant including partial matches with `~`
+- **Configurable thresholds**: Easy modification of acceptable values via YAML/JSON files
+- Automated pass/fail quality control status with detailed comments
 
 ## Requirements
 
 ### External Tools
-- `mykrobe` - for emm1 lineage typing
-- `mlst` - for MLST analysis (with spyogenes scheme)
-- `emmtyper` - for emm typing
-- `parallel` (GNU parallel) - for parallel processing
+- `mykrobe` - for emm1 lineage typing (standard mode)
+- `mlst` - for MLST analysis (QC mode)
+- `emmtyper` - for emm typing (QC mode)
+- `seqkit` - for assembly statistics (QC mode)
 - `python3` with pandas and PyYAML
 
 ### Reference Data
-The script requires the following reference files in the `reference_data/` directory:
-- `lineage.json` - mykrobe lineage configuration
-- `probes.fa` - probe sequences for mykrobe
-- `emm1_alleles.txt` - allele definitions
-- `acceptable_emm_types.yaml` - configurable list of acceptable emm types
-- `acceptable_mlst_profiles.yaml` - configurable list of acceptable MLST profiles
-- `parse_mykrobe_predict_emm1.py` - parsing script (in scripts/ directory)
+The tool requires reference files in the `reference_data/` directory:
+- `acceptable_emm_types.yaml` - configurable list of acceptable EMM types
+- `acceptable_mlst_profiles.yaml` - configurable list of acceptable MLST profiles  
+- `acceptable_assembly_metrics.json` - assembly quality thresholds
+- Additional files for standard mykrobe mode (lineage.json, probes.fa, etc.)
 
-## Configuration
+## Configuration Files
 
-### Acceptable emm Types (reference_data/acceptable_emm_types.yaml)
-Edit this file to modify which emm types are considered acceptable:
+### Acceptable EMM Types (`reference_data/acceptable_emm_types.yaml`)
+The QC mode uses intelligent pattern matching for EMM1 variants:
 ```yaml
 # Acceptable emm types for S. pyogenes emm1 analysis
+# Includes all EMM1.* variants and allows for ~ partial matches
 emm_types:
   - "emm1.0"
   - "emm1.1"
-  - "emm1.2"
-  # ... add more types as needed
+  - "emm1.34"
+  - "emm1.34~"
+  - "emm1.90"
+  - "emm1.92"
+  - "emm1.96"
+  - "emm1.98"
+  - "emm1.99"
+  # Pattern matching enabled in QC processor for EMM1.* and EMM1.*~ variants
 ```
 
-### Acceptable MLST Profiles (reference_data/acceptable_mlst_profiles.yaml)
-Edit this file to modify which MLST sequence types are considered acceptable:
+**Note**: The QC mode automatically accepts ANY EMM1.* variant (e.g., EMM1.123, emm1.999~) even if not explicitly listed.
+
+### Acceptable MLST Profiles (`reference_data/acceptable_mlst_profiles.yaml`)
 ```yaml
 # Acceptable MLST profiles for S. pyogenes emm1 analysis
 mlst_profiles:
-  - "ST28"
-  - "ST15"
-  - "ST101"
-  # ... add more STs as needed
+  - "28"
+  - "440"
+  - "542"
+  - "643"
+  - "785"
+  - "830"
+  - "852"
+  # ... additional acceptable ST values
+  - "-"  # Allows for failed/unknown MLST typing
+```
+
+### Assembly Quality Metrics (`reference_data/acceptable_assembly_metrics.json`)
+```json
+{
+  "min_genome_size": 1800000,
+  "max_genome_size": 2200000,
+  "max_contigs": 100,
+  "min_n50": 50000,
+  "max_n_content": 5.0
+}
 ```
 
 ## Usage
 
-### Modular Version (Recommended)
-
+### QC Mode (Quality Control of Assembled Contigs)
 ```bash
-# Process reads only (emm1 lineage typing)
-python Emm1typer_modular.py --reads reads.tab --reference-dir ./reference_data
+# Basic QC analysis
+python Emm1typer.py --qc --contigs contigs.tab --reference-dir ./reference_data
 
-# Process contigs only (MLST + emmtyping)
-python Emm1typer_modular.py --contigs contigs.tab --reference-dir ./reference_data
-
-# Process both reads and contigs (complete analysis)
-python Emm1typer_modular.py --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+# QC analysis with custom output directory and threads
+python Emm1typer.py --qc --contigs contigs.tab --reference-dir ./reference_data \
+  --output-dir qc_results --threads 16
 ```
 
-### Original Version
-
+### Standard Mode (Mykrobe Analysis)
 ```bash
-# Process reads only (emm1 lineage typing)
+# Standard mykrobe analysis from reads
 python Emm1typer.py --reads reads.tab --reference-dir ./reference_data
 
-# Process contigs only (MLST + emmtyping)
-python Emm1typer.py --contigs contigs.tab --reference-dir ./reference_data
-
-# Process both reads and contigs (complete analysis)
-python Emm1typer.py --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+# With custom options
+python Emm1typer.py --reads reads.tab --reference-dir ./reference_data \
+  --output-dir mykrobe_results --threads 16
 ```
-
-### Advanced Options
-
-```bash
-python Emm1typer_modular.py \
-  --reads reads.tab \
-  --contigs contigs.tab \
-  --reference-dir ./reference_data \
-  --output-dir my_analysis_results \
-  --threads 16 \
-  --parallel-jobs 20
-```
-
-## Modifying the Workflow
-
-### Adding New Analysis Types
-
-To add a new analysis type to the modular version:
-
-1. **Create a new module** in `modules/` (e.g., `new_analyzer.py`):
-   ```python
-   class NewAnalyzer:
-       def __init__(self, output_dir, threads=8):
-           self.output_dir = Path(output_dir)
-           self.threads = threads
-       
-       def process_data(self, input_file):
-           # Your analysis logic here
-           return True
-   ```
-
-2. **Import and initialize** in `Emm1typer_modular.py`:
-   ```python
-   from modules.new_analyzer import NewAnalyzer
-   
-   # In __init__:
-   self.new_analyzer = NewAnalyzer(output_dir, threads)
-   ```
-
-3. **Add to the workflow** in the orchestrator class:
-   ```python
-   def run_new_analysis(self, input_file):
-       return self.new_analyzer.process_data(input_file)
-   ```
-
-### Modifying Existing Analysis
-
-To modify an existing analysis (e.g., MLST):
-
-1. **Edit the specific module**: `modules/mlst_analyzer.py`
-2. **Modify only the relevant methods** without affecting other components
-3. **The changes automatically apply** to the main workflow
-
-### Customizing Results Analysis
-
-To change how results are filtered or analyzed:
-
-1. **Edit** `modules/results_analyzer.py`
-2. **Modify** the `analyze_mlst_results()` or `analyze_emmtyper_results()` methods
-3. **Add new filtering criteria** or change existing logic
 
 ## Input File Formats
 
-### Reads File (reads.tab)
+### Contigs File for QC Mode (contigs.tab)
+Tab-separated file with two columns (no header):
+```
+Strain_ID	contigs_path
+Sample001	/path/to/sample001_contigs.fa
+Sample002	/path/to/sample002_contigs.fa
+Sample003	/path/to/sample003_contigs.fasta
+```
+
+### Reads File for Standard Mode (reads.tab)
 Tab-separated file with three columns (no header):
 ```
 Strain_ID	reads1_path	reads2_path
@@ -182,102 +126,115 @@ Sample001	/path/to/sample001_R1.fastq.gz	/path/to/sample001_R2.fastq.gz
 Sample002	/path/to/sample002_R1.fastq.gz	/path/to/sample002_R2.fastq.gz
 ```
 
-### Contigs File (contigs.tab)
-Tab-separated file with two columns (no header):
+## QC Mode Output
+
+### Main Output File: `qc_summary.tsv`
+Contains the following columns for each strain:
+- **Strain_ID**: Sample identifier
+- **ST**: MLST sequence type (from mlst tool)
+- **EMM**: EMM type (from emmtyper tool)
+- **Lineage**: Determined lineage based on EMM and ST
+- **QC_Status**: PASS or FAIL based on all quality checks
+- **Comments**: Detailed explanations of any issues or "All QC checks passed"
+
+### Example QC Output:
 ```
-Strain_ID	contigs_path
-Sample001	/path/to/sample001_contigs.fa
-Sample002	/path/to/sample002_contigs.fa
-```
-
-## Output and Warnings
-
-The script provides clear visual feedback during analysis:
-
-### Warning Messages
-The script will display warnings for samples that don't meet acceptance criteria:
-```
-⚠️  WARNING: Samples with non-acceptable MLST profiles:
-   - Sample001: ST1 (not in acceptable list)
-   - Sample002: ST5 (not in acceptable list)
-   Acceptable MLST profiles: ST28, ST15, ST101, ST334, ST403, ...
-
-⚠️  WARNING: Samples with non-acceptable emm types:
-   - Sample003: emm12.0 (not in acceptable list)
-   Acceptable emm types: emm1.0, emm1.1, emm1.2, ...
+Strain_ID	ST	EMM	Lineage	QC_Status	Comments
+Sample001	28	EMM1.0	emm1.0	PASS	All QC checks passed
+Sample002	440	EMM1.34~	emm1_variant	PASS	All QC checks passed
+Sample003	999	EMM1.90	emm1_variant	FAIL	ST 999 not in acceptable list
+Sample004	28	EMM2.0	non-emm1	FAIL	EMM type EMM2.0 not acceptable (must be EMM1.* variant)
 ```
 
-### Success Messages
-```
-✓ Found 5 samples with acceptable MLST profiles
-✓ Found 3 samples with acceptable emm types
-```
+## Quality Control Checks
 
-## Output Files
+The QC mode performs the following validations:
 
-The script generates several output files:
+### 1. EMM Type Validation
+- ✅ **Accepts**: Any EMM1.* variant (case-insensitive)
+- ✅ **Handles**: Partial matches with `~` (e.g., EMM1.34~)
+- ❌ **Rejects**: Non-EMM1 types (e.g., EMM2.0, EMM12.1)
 
-### emm1 Lineage Results (from reads)
-- `emm1_lineage_results_predictResults.tsv` - Complete lineage typing results
-- Includes confidence scores and marker support information
+### 2. MLST Validation
+- ✅ **Accepts**: ST values listed in `acceptable_mlst_profiles.yaml`
+- ✅ **Handles**: Unknown/failed typing (`-`)
+- ❌ **Rejects**: ST values not in the acceptable list
 
-### MLST Results (from contigs)
-- `mlst_results.tsv` - Complete MLST results
-- `mlst_results.json` - MLST results in JSON format
-- `acceptable_mlst_results.tsv` - Filtered results for acceptable ST types
-
-### emmtyper Results (from contigs)
-- `emmtyper_results.tsv` - Complete emmtyper results
-- `acceptable_emmtyper_results.tsv` - Filtered results for acceptable emm types
-
-### Summary
-- `Emm1typer_summary_report.txt` - Comprehensive analysis summary
+### 3. Assembly Quality Validation
+- **Genome size**: Must be between 1.8-2.2 Mb
+- **Contig count**: Must be ≤100 contigs
+- **N50**: Must be ≥50,000 bp
+- **N content**: Must be ≤5%
 
 ## Command Line Options
 
-- `--reads` - Tab-separated file with strain IDs and paired read paths
-- `--contigs` - Tab-separated file with strain IDs and contig paths
+- `--qc` - Enable QC mode for contig analysis
+- `--reads` - Tab-separated file with strain IDs and paired read paths (standard mode)
+- `--contigs` - Tab-separated file with strain IDs and contig paths (QC mode)
 - `--reference-dir` - Directory containing reference data (required)
 - `--output-dir` - Output directory for results (default: emm1typer_output)
 - `--threads` - Number of threads for analysis tools (default: 8)
-- `--parallel-jobs` - Number of parallel jobs for mykrobe (default: 10)
-- `--skip-deps-check` - Skip dependency checking
 
-## Example Workflow
+## Project Structure
 
-1. **Configure acceptable types** by editing the YAML files in `reference_data/`:
-   - `acceptable_emm_types.yaml`
-   - `acceptable_mlst_profiles.yaml`
+```
+Emm1typer/
+├── Emm1typer.py              # Main entry point
+├── scripts/
+│   ├── __init__.py
+│   ├── qc_processor.py       # QC mode implementation
+│   └── parse_mykrobe_predict_emm1.py
+├── reference_data/
+│   ├── acceptable_emm_types.yaml
+│   ├── acceptable_mlst_profiles.yaml
+│   ├── acceptable_assembly_metrics.json
+│   └── [other reference files]
+├── example_contigs.tab       # Example input file
+├── example_reads.tab         # Example input file
+└── README.md
+```
 
-2. **Prepare your input files** following the format specifications
+## Examples
 
-3. **Run the analysis** (modular version recommended):
-   ```bash
-   python Emm1typer_modular.py --reads my_reads.tab --contigs my_contigs.tab --reference-dir ./reference_data
-   ```
+### Basic QC Analysis
+```bash
+python Emm1typer.py --qc --contigs my_contigs.tab --reference-dir ./reference_data
+```
 
-4. **Review the output** for warnings about non-acceptable samples
+### QC Analysis with Custom Settings
+```bash
+python Emm1typer.py --qc \
+  --contigs my_contigs.tab \
+  --reference-dir ./reference_data \
+  --output-dir qc_analysis_results \
+  --threads 12
+```
 
-5. **Check results**:
-   - Summary report: `emm1typer_output/Emm1typer_summary_report.txt`
-   - Filtered results: `acceptable_*_results.tsv` files
-   - Complete results: `*_results.tsv` files
-
-## Notes
-
-- **🆕 Modular design**: Use `Emm1typer_modular.py` for easier customization and maintenance
-- **Configurable acceptance criteria**: Simply edit the YAML files to change which emm types and MLST profiles are considered acceptable
-- **Clear warnings**: The script provides immediate feedback about samples that don't meet your criteria
-- **Automatic filtering**: Results are automatically separated into complete and filtered (acceptable-only) datasets
-- **Fallback protection**: If YAML files can't be read, the script falls back to sensible defaults
-- The script performs emm1 lineage typing as described in your workflow using mykrobe with custom lineage and probe sets
-- MLST analysis uses the spyogenes scheme specifically
-- The script includes comprehensive error checking and dependency validation
+### Standard Mykrobe Analysis
+```bash
+python Emm1typer.py --reads my_reads.tab --reference-dir ./reference_data
+```
 
 ## Troubleshooting
 
-If you encounter issues:
-1. Ensure all required tools are installed and in your PATH
-2. Verify that reference files are present and correctly formatted
-3. Check that input file paths are correct and accessible
-4. Make sure PyYAML is installed: `pip install PyYAML`
+### Common Issues:
+1. **Tool not found errors**: Ensure emmtyper, mlst, seqkit, and mykrobe are installed and in PATH
+2. **Reference file errors**: Verify all YAML/JSON files exist and are properly formatted
+3. **Input file errors**: Check that contig/read file paths are correct and accessible
+4. **Python module errors**: Install required packages: `pip install pandas PyYAML`
+
+### Dependency Installation:
+```bash
+# Install required Python packages
+pip install pandas PyYAML
+
+# Install external tools (example for conda)
+conda install -c bioconda emmtyper mlst seqkit mykrobe
+```
+
+## Notes
+
+- The tool automatically handles case-insensitive EMM type matching
+- Assembly quality thresholds can be customized by editing the JSON configuration file
+- QC mode is designed for rapid quality assessment of large batches of assembled genomes
+- The `~` character in EMM types indicates partial/uncertain matches from emmtyper and is handled appropriately
