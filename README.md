@@ -1,6 +1,6 @@
 # Emm1typer
 
-A simplified tool for emm1 lineage typing and quality control of Streptococcus pyogenes isolates.
+A simplified tool for emm1 lineage typing of Streptococcus pyogenes isolates.
 
 ## Overview
 
@@ -229,7 +229,7 @@ python Emm1typer.py --reads my_reads.tab --reference-dir ./reference_data
 pip install pandas PyYAML
 
 # Install external tools (example for conda)
-conda install -c bioconda emmtyper mlst seqkit mykrobe
+conda install -c bioconda emmtyper mlst seqkit mykrobe= pandas PyYAML 
 ```
 
 ## Notes

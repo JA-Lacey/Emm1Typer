@@ -5,6 +5,7 @@ Emm1typer - Simplified emm1 lineage typing and quality control tool
 Main modes:
 1. Standard mode: Run mykrobe for lineage typing from reads
 2. QC mode: Quality control assessment of assembled contigs
+3. Combined mode: Run both standard and QC modes when both inputs provided
 """
 
 import sys
@@ -21,15 +22,173 @@ def run_mykrobe_standard(reads_file, reference_dir, output_dir, threads):
     """Run standard mykrobe analysis on reads"""
     print("Running mykrobe standard analysis...")
     
-    # This maintains existing mykrobe functionality
-    # Implementation would go here based on your existing mykrobe pipeline
-    print(f"Processing reads from {reads_file}")
-    print(f"Using reference data from {reference_dir}")
-    print(f"Output directory: {output_dir}")
-    print(f"Threads: {threads}")
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
     
-    # Placeholder for actual mykrobe implementation
-    return True
+    if not Path(reads_file).exists():
+        print(f"Error: Reads file {reads_file} not found")
+        return False
+    
+    # Read reads file
+    try:
+        reads_df = pd.read_csv(reads_file, sep='\t', header=None, names=['Strain_ID', 'Read1', 'Read2'])
+        print(f"Processing {len(reads_df)} strains from {reads_file}")
+    except Exception as e:
+        print(f"Error reading reads file: {e}")
+        return False
+    
+    # Prepare reference files
+    reference_path = Path(reference_dir)
+    probes_file = reference_path / "probes.fa"  # Check if probes.ref.fa exists, fallback to probes.fa
+    probes_ref_file = reference_path / "probes.ref.fa"
+    if probes_ref_file.exists():
+        probes_file = probes_ref_file
+    
+    lineage_file = reference_path / "lineage.json"
+    alleles_file = reference_path / "emm1_alleles.txt"
+    
+    # Check required reference files
+    required_files = [probes_file, lineage_file, alleles_file]
+    for req_file in required_files:
+        if not req_file.exists():
+            print(f"Error: Required reference file not found: {req_file}")
+            return False
+    
+    # Create temporary directory for mykrobe outputs
+    temp_dir = output_path / "temp_mykrobe"
+    temp_dir.mkdir(exist_ok=True)
+    
+    json_files = []
+    failed_strains = []
+    
+    try:
+        # Process each strain
+        for _, row in reads_df.iterrows():
+            strain_id = row['Strain_ID']
+            read1 = row['Read1']
+            read2 = row['Read2']
+            
+            print(f"Processing strain: {strain_id}")
+            
+            # Check if read files exist
+            if not Path(read1).exists() or not Path(read2).exists():
+                print(f"Warning: Read files not found for strain {strain_id}")
+                failed_strains.append(strain_id)
+                continue
+            
+            # Run mykrobe predict
+            json_output = temp_dir / f"{strain_id}_mykrobe.json"
+            success = _run_mykrobe_predict(strain_id, read1, read2, probes_file, lineage_file, json_output, threads)
+            
+            if success:
+                json_files.append(json_output)
+            else:
+                failed_strains.append(strain_id)
+        
+        if not json_files:
+            print("Error: No successful mykrobe analyses")
+            return False
+        
+        # Parse mykrobe results
+        print("Parsing mykrobe results...")
+        success = _parse_mykrobe_results(json_files, alleles_file, output_path)
+        
+        if success:
+            print(f"Standard analysis complete! Results saved to {output_dir}/mykrobe_predictResults.tsv")
+            
+            if failed_strains:
+                print(f"Failed strains: {', '.join(failed_strains)}")
+            
+            return True
+        else:
+            print("Failed to parse mykrobe results")
+            return False
+            
+    finally:
+        # Clean up temporary files
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def _run_mykrobe_predict(strain_id, read1, read2, probes_file, lineage_file, json_output, threads):
+    """Run mykrobe predict for a single strain"""
+    try:
+        cmd = [
+            "mykrobe", "predict",
+            "--sample", strain_id,
+            "--species", "custom",
+            "--seq", str(read1), str(read2),
+            "--custom_lineage_json", str(lineage_file),
+            "--custom_probe_set_path", str(probes_file),
+            "--format", "json",
+            "-o", str(json_output)
+        ]
+        
+        print(f"Running command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"mykrobe predict failed for {strain_id}: {e}")
+        if e.stderr:
+            print(f"Error output: {e.stderr}")
+        if e.stdout:
+            print(f"Standard output: {e.stdout}")
+        return False
+
+
+def _parse_mykrobe_results(json_files, alleles_file, output_dir):
+    """Parse mykrobe JSON results using the existing parser"""
+    try:
+        # Import the parser
+        sys.path.append(str(Path(__file__).parent / "scripts"))
+        from parse_mykrobe_predict_emm1 import extract_lineage_info
+        import pandas as pd
+        
+        # Load alleles mapping
+        lineage_name_dict = {}
+        with open(alleles_file, 'r') as f:
+            for line in f:
+                fields = line.strip().split('\t')
+                if len(fields) >= 4:
+                    lineage_name_dict[fields[2]] = fields[3]
+        
+        results_tables = []
+        
+        # Process each JSON file
+        for json_file in json_files:
+            with open(json_file) as f:
+                myk_result = json.load(f)
+            
+            if len(list(myk_result.keys())) > 1:
+                print(f"Warning: More than one result in {json_file}")
+                continue
+            
+            genome_name = list(myk_result.keys())[0]
+            genome_data = myk_result[genome_name]
+            lineage_data = genome_data["phylogenetics"]
+            lineage_table = extract_lineage_info(lineage_data, genome_name, lineage_name_dict)
+            results_tables.append(lineage_table)
+        
+        if results_tables:
+            # Combine results
+            final_results = pd.concat(results_tables, sort=True)
+            
+            # Save results
+            output_file = output_dir / "mykrobe_predictResults.tsv"
+            final_results.to_csv(output_file, index=False, sep="\t", 
+                                columns=["genome", "final genotype", "name", 
+                                        "confidence", "lowest support for genotype marker", 
+                                        "poorly supported markers", "max support for additional markers", 
+                                        "additional markers", "node support"])
+            
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Error parsing mykrobe results: {e}")
+        return False
 
 
 def run_qc_mode(contigs_file, reference_dir, output_dir, threads):
@@ -53,6 +212,36 @@ def run_qc_mode(contigs_file, reference_dir, output_dir, threads):
         return False
 
 
+def run_combined_mode(reads_file, contigs_file, reference_dir, output_dir, threads):
+    """Run both standard mykrobe and QC modes"""
+    print("Running combined mode: Standard mykrobe analysis + QC mode...")
+    
+    success = True
+    
+    # Run standard mykrobe analysis
+    print("\n=== Running Standard Mode (mykrobe analysis) ===")
+    mykrobe_success = run_mykrobe_standard(reads_file, reference_dir, output_dir, threads)
+    if not mykrobe_success:
+        print("Standard mykrobe analysis failed")
+        success = False
+    
+    # Run QC analysis
+    print("\n=== Running QC Mode (contig quality control) ===")
+    qc_success = run_qc_mode(contigs_file, reference_dir, output_dir, threads)
+    if not qc_success:
+        print("QC analysis failed")
+        success = False
+    
+    # Summary
+    if success:
+        print("\n=== Combined Analysis Complete ===")
+        print(f"✓ Standard mykrobe analysis: {'SUCCESS' if mykrobe_success else 'FAILED'}")
+        print(f"✓ QC analysis: {'SUCCESS' if qc_success else 'FAILED'}")
+        print(f"Results saved to {output_dir}/")
+    
+    return success
+
+
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
@@ -60,11 +249,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Standard mykrobe analysis
+  # Standard mykrobe analysis only
   python Emm1typer.py --reads reads.tab --reference-dir ./reference_data
   
-  # QC mode for assembled contigs
+  # QC mode only
   python Emm1typer.py --qc --contigs contigs.tab --reference-dir ./reference_data
+  
+  # Combined mode (both standard and QC)
+  python Emm1typer.py --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+  
+  # Combined mode with explicit QC flag (same as above)
+  python Emm1typer.py --qc --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
         """
     )
     
@@ -84,15 +279,28 @@ Examples:
     
     args = parser.parse_args()
     
-    # Validate input arguments
-    if args.qc:
-        if not args.contigs:
-            parser.error("--qc mode requires --contigs")
+    # Validate input arguments and determine mode
+    if args.reads and args.contigs:
+        # Combined mode: both standard and QC
+        print("Both reads and contigs provided - running combined mode")
+        return run_combined_mode(args.reads, args.contigs, args.reference_dir, args.output_dir, args.threads)
+    
+    elif args.qc and args.contigs:
+        # QC mode only
         return run_qc_mode(args.contigs, args.reference_dir, args.output_dir, args.threads)
-    else:
-        if not args.reads:
-            parser.error("Standard mode requires --reads")
+    
+    elif args.reads and not args.qc:
+        # Standard mode only
         return run_mykrobe_standard(args.reads, args.reference_dir, args.output_dir, args.threads)
+    
+    else:
+        # Invalid combinations
+        if args.qc and not args.contigs:
+            parser.error("--qc mode requires --contigs")
+        elif not args.reads and not args.contigs:
+            parser.error("At least one of --reads or --contigs must be provided")
+        else:
+            parser.error("Invalid combination of arguments")
 
 
 if __name__ == "__main__":
