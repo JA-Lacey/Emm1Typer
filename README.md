@@ -237,4 +237,4 @@ conda install -c bioconda emmtyper mlst seqkit mykrobe= pandas PyYAML
 - The tool automatically handles case-insensitive EMM type matching
 - Assembly quality thresholds can be customized by editing the JSON configuration file
 - QC mode is designed for rapid quality assessment of large batches of assembled genomes
-- The `~` character in EMM types indicates partial/uncertain matches from emmtyper and is handled appropriately
+- The `~` character in EMM types indicates partial/uncertain matches from emmtyper and is handled appropriatelyq

@@ -16,10 +16,11 @@ import json
 import yaml
 import pandas as pd
 from scripts.qc_processor import QCProcessor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def run_mykrobe_standard(reads_file, reference_dir, output_dir, threads):
-    """Run standard mykrobe analysis on reads"""
+    """Run standard mykrobe analysis on reads with parallel processing"""
     print("Running mykrobe standard analysis...")
     
     output_path = Path(output_dir)
@@ -32,14 +33,14 @@ def run_mykrobe_standard(reads_file, reference_dir, output_dir, threads):
     # Read reads file
     try:
         reads_df = pd.read_csv(reads_file, sep='\t', header=None, names=['Strain_ID', 'Read1', 'Read2'])
-        print(f"Processing {len(reads_df)} strains from {reads_file}")
+        print(f"Processing {len(reads_df)} strains from {reads_file} using {threads} threads...")
     except Exception as e:
         print(f"Error reading reads file: {e}")
         return False
     
     # Prepare reference files
     reference_path = Path(reference_dir)
-    probes_file = reference_path / "probes.fa"  # Check if probes.ref.fa exists, fallback to probes.fa
+    probes_file = reference_path / "probes.fa"
     probes_ref_file = reference_path / "probes.ref.fa"
     if probes_ref_file.exists():
         probes_file = probes_ref_file
@@ -62,28 +63,43 @@ def run_mykrobe_standard(reads_file, reference_dir, output_dir, threads):
     failed_strains = []
     
     try:
-        # Process each strain
-        for _, row in reads_df.iterrows():
-            strain_id = row['Strain_ID']
-            read1 = row['Read1']
-            read2 = row['Read2']
+        # Process strains in parallel using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=threads) as executor:
+            # Submit all mykrobe predict tasks
+            future_to_strain = {}
             
-            print(f"Processing strain: {strain_id}")
+            for _, row in reads_df.iterrows():
+                strain_id = row['Strain_ID']
+                read1 = row['Read1']
+                read2 = row['Read2']
+                
+                # Check if read files exist
+                if not Path(read1).exists() or not Path(read2).exists():
+                    print(f"Warning: Read files not found for strain {strain_id}")
+                    failed_strains.append(strain_id)
+                    continue
+                
+                json_output = temp_dir / f"{strain_id}_mykrobe.json"
+                
+                # Submit mykrobe predict task
+                future = executor.submit(_run_mykrobe_predict, strain_id, read1, read2, 
+                                       probes_file, lineage_file, json_output, 1)  # Use 1 thread per job since we're parallelizing at strain level
+                future_to_strain[future] = (strain_id, json_output)
             
-            # Check if read files exist
-            if not Path(read1).exists() or not Path(read2).exists():
-                print(f"Warning: Read files not found for strain {strain_id}")
-                failed_strains.append(strain_id)
-                continue
-            
-            # Run mykrobe predict
-            json_output = temp_dir / f"{strain_id}_mykrobe.json"
-            success = _run_mykrobe_predict(strain_id, read1, read2, probes_file, lineage_file, json_output, threads)
-            
-            if success:
-                json_files.append(json_output)
-            else:
-                failed_strains.append(strain_id)
+            # Collect results as they complete
+            for future in as_completed(future_to_strain):
+                strain_id, json_output = future_to_strain[future]
+                try:
+                    success = future.result()
+                    if success:
+                        json_files.append(json_output)
+                        print(f"Completed mykrobe analysis for strain: {strain_id}")
+                    else:
+                        failed_strains.append(strain_id)
+                        print(f"Failed mykrobe analysis for strain: {strain_id}")
+                except Exception as e:
+                    print(f"Error processing strain {strain_id}: {e}")
+                    failed_strains.append(strain_id)
         
         if not json_files:
             print("Error: No successful mykrobe analyses")

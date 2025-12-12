@@ -7,6 +7,7 @@ Handles quality control analysis of assembled contigs including:
 - MLST analysis  
 - seqkit assembly statistics
 - Comparison against acceptable values
+- Parallel processing for improved performance
 """
 
 import subprocess
@@ -15,6 +16,8 @@ import yaml
 import pandas as pd
 import shutil
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 
 class QCProcessor:
@@ -72,7 +75,7 @@ class QCProcessor:
     
     def process_contigs(self, contigs_file):
         """
-        Process contigs file and run QC analysis
+        Process contigs file and run QC analysis with parallel processing
         
         Args:
             contigs_file: Tab-separated file with columns: Strain_ID, contigs_path
@@ -93,18 +96,39 @@ class QCProcessor:
             print(f"Error reading contigs file: {e}")
             return False
         
-        # Initialize results
-        results = []
+        print(f"Running QC analysis on {len(contigs_df)} strains using {self.threads} threads...")
         
-        for _, row in contigs_df.iterrows():
-            strain_id = row['Strain_ID']
-            contigs_path = row['contigs_path']
+        # Process strains in parallel
+        results = []
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            # Submit all strain analysis tasks
+            future_to_strain = {
+                executor.submit(self._analyze_strain, row['Strain_ID'], row['contigs_path']): row['Strain_ID']
+                for _, row in contigs_df.iterrows()
+            }
             
-            print(f"Processing strain: {strain_id}")
-            
-            # Run QC analysis for this strain
-            strain_result = self._analyze_strain(strain_id, contigs_path)
-            results.append(strain_result)
+            # Collect results as they complete
+            for future in as_completed(future_to_strain):
+                strain_id = future_to_strain[future]
+                try:
+                    result = future.result()
+                    results.append(result)
+                    print(f"Completed analysis for strain: {strain_id}")
+                except Exception as e:
+                    print(f"Error analyzing strain {strain_id}: {e}")
+                    # Add failed result
+                    failed_result = {
+                        'Strain_ID': strain_id,
+                        'ST': 'Failed',
+                        'EMM': 'Failed', 
+                        'Lineage': 'Failed',
+                        'QC_Status': 'FAIL',
+                        'Comments': [f"Analysis failed: {str(e)}"]
+                    }
+                    results.append(failed_result)
+        
+        # Sort results by strain ID to maintain consistent output order
+        results.sort(key=lambda x: x['Strain_ID'])
         
         # Generate summary report
         self._generate_summary_report(results)
