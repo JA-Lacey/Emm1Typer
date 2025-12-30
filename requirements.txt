@@ -1,0 +1,11 @@
+# Emm1typer Package Requirements
+
+# Python dependencies
+pandas>=1.3.0
+pyyaml>=5.4.0
+
+# External tools (must be installed separately and available in PATH):
+# - mykrobe (tested with version 0.12.1)
+# - mlst (for MLST analysis)
+# - emmtyper (for emm typing)
+# - seqkit (for assembly statistics)

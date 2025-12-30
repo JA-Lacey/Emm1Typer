@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include DETAILED_USAGE.md
+recursive-include reference_data *
+recursive-include mykrobe/data/skeletons *.ctx
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
