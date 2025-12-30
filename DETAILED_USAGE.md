@@ -14,6 +14,7 @@
 ## Installation and Setup
 
 ### Dependencies
+
 Emm1typer requires the following external tools to be installed and available in your PATH:
 
 - **mykrobe** (tested with version 0.12.1)
@@ -22,8 +23,24 @@ Emm1typer requires the following external tools to be installed and available in
 - **seqkit** - for assembly statistics
 
 ### Python Requirements
+
 ```bash
 pip install pandas pyyaml
+```
+
+## Creating conda environment with all dependencies
+
+```bash
+mamba create -n emm1typer python=3.9 -y
+mamba activate emm1typer
+
+mamba install -c bioconda mykrobe mlst emmtyper seqkit -y
+git clone https://github.com/JA-Lacey/Emm1Typer.git
+cd Emm1Typer
+pip install -e .
+
+# check installation
+emm1typer --help
 ```
 
 ### Reference Data Setup
@@ -40,7 +57,7 @@ Place all reference files in a single directory (typically `reference_data/`):
 
 ### Standard Mode (Lineage Typing)
 ```bash
-python Emm1typer.py --reads <reads_file> --reference-dir <ref_dir> [options]
+emm1typer --reads <reads_file> --reference-dir <ref_dir> [options]
 ```
 
 **Required:**
@@ -53,7 +70,7 @@ python Emm1typer.py --reads <reads_file> --reference-dir <ref_dir> [options]
 
 ### QC Mode (Quality Control)
 ```bash
-python Emm1typer.py --qc --contigs <contigs_file> --reference-dir <ref_dir> [options]
+emm1typer --qc --contigs <contigs_file> --reference-dir <ref_dir> [options]
 ```
 
 **Required:**
@@ -63,7 +80,7 @@ python Emm1typer.py --qc --contigs <contigs_file> --reference-dir <ref_dir> [opt
 
 ### Combined Mode
 ```bash
-python Emm1typer.py --reads <reads_file> --contigs <contigs_file> --reference-dir <ref_dir> [options]
+emm1typer --reads <reads_file> --contigs <contigs_file> --reference-dir <ref_dir> [options]
 ```
 
 ## Input File Formats
