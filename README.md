@@ -1,6 +1,6 @@
 # Emm1typer
 
-A tool for emm1 lineage typing and quality control of Streptococcus pyogenes isolates.
+A tool for genotyping and lineage determination of Streptococcus pyogenes emm1 isolates.
 
 ## Overview
 
