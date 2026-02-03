@@ -9,14 +9,36 @@ Emm1typer provides two main functions:
 1. **Standard Mode**: emm1 lineage typing from paired-end reads using mykrobe
 2. **QC Mode**: Quality control assessment of assembled contigs
 
+## Installation
+
+### Using pip (recommended)
+
+```bash
+pip install emm1typer
+```
+
+### From source
+
+```bash
+git clone https://github.com/JA-Lacey/Emm1Typer.git
+cd Emm1Typer
+pip install -e .
+```
+
 ## Requirements
 
-### External Tools
-- `mykrobe` - for lineage typing
+### External Tools (must be installed separately)
+
+- `mykrobe` (tested with version 0.12.1) - for lineage typing
 - `mlst` - for MLST analysis
 - `emmtyper` - for emm typing
 - `seqkit` - for assembly statistics
-- `python3` with pandas and PyYAML
+
+### Python Dependencies (installed automatically)
+
+- `pandas>=1.3.0`
+- `pyyaml>=5.4.0`
+
 
 ### Reference Files
 Required files in the `reference_data/` directory:
@@ -31,17 +53,17 @@ Required files in the `reference_data/` directory:
 
 ### Standard Mode (Lineage Typing)
 ```bash
-python Emm1typer.py --reads reads.tab --reference-dir ./reference_data
+emm1typer --reads reads.tab --reference-dir ./reference_data
 ```
 
 ### QC Mode (Quality Control)
 ```bash
-python Emm1typer.py --qc --contigs contigs.tab --reference-dir ./reference_data
+emm1typer --qc --contigs contigs.tab --reference-dir ./reference_data
 ```
 
 ### Combined Mode
 ```bash
-python Emm1typer.py --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+emm1typer --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
 ```
 
 ## Input Files
@@ -63,9 +85,11 @@ Sample002	/path/to/sample002_contigs.fa
 ## Outputs
 
 ### Standard Mode
+
 - `mykrobe_predictResults.tsv` - lineage typing results with final genotypes
 
 ### QC Mode  
+
 - `qc_summary.tsv` - quality control results with EMM types, MLST, lineages, and pass/fail status
 
 ## Options

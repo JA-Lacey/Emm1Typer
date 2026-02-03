@@ -14,8 +14,9 @@ import subprocess
 from pathlib import Path
 import json
 import pandas as pd
-from scripts.qc_processor import QCProcessor
+from emm1typer.qc_processor import QCProcessor
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from . import __version__
 
 
 def run_mykrobe_standard(reads_file, reference_dir, output_dir, threads):
@@ -156,8 +157,7 @@ def _parse_mykrobe_results(json_files, alleles_file, output_dir):
     """Parse mykrobe JSON results using the existing parser"""
     try:
         # Import the parser
-        sys.path.append(str(Path(__file__).parent / "scripts"))
-        from parse_mykrobe_predict_emm1 import extract_lineage_info
+        from emm1typer.parse_mykrobe_predict_emm1 import extract_lineage_info
         import pandas as pd
         
         # Load alleles mapping
@@ -265,16 +265,16 @@ def main():
         epilog="""
 Examples:
   # Standard mykrobe analysis only
-  python Emm1typer.py --reads reads.tab --reference-dir ./reference_data
+  emm1typer --reads reads.tab --reference-dir ./reference_data
   
   # QC mode only
-  python Emm1typer.py --qc --contigs contigs.tab --reference-dir ./reference_data
+  emm1typer --qc --contigs contigs.tab --reference-dir ./reference_data
   
   # Combined mode (both standard and QC)
-  python Emm1typer.py --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+  emm1typer --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
   
   # Combined mode with explicit QC flag (same as above)
-  python Emm1typer.py --qc --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
+  emm1typer --qc --reads reads.tab --contigs contigs.tab --reference-dir ./reference_data
         """
     )
     
@@ -291,6 +291,9 @@ Examples:
     # Optional arguments
     parser.add_argument("--output-dir", default="emm1typer_output", help="Output directory (default: emm1typer_output)")
     parser.add_argument("--threads", type=int, default=8, help="Number of threads (default: 8)")
+    
+    # Version
+    parser.add_argument("--version", action="version", version=f"emm1typer {__version__}")
     
     args = parser.parse_args()
     
